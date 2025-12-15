@@ -1,0 +1,179 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'admin_login.dart';
+
+class AdminRegisterPage extends StatefulWidget {
+  const AdminRegisterPage({super.key});
+
+  @override
+  _AdminRegisterPageState createState() => _AdminRegisterPageState();
+}
+
+class _AdminRegisterPageState extends State<AdminRegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController adminIdController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _register() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        final response = await http.post(
+          Uri.parse('http://localhost:3000/api/admin/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'adminId': adminIdController.text,
+            'name': nameController.text,
+            'password': passwordController.text,
+          }),
+        );
+
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 201 && data['success']) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminLoginPage()),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'])),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    adminIdController.dispose();
+    nameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Admin Registration'),
+        backgroundColor: const Color(0xFFF06292),
+        foregroundColor: Colors.white,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('bg.jpg'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: Center(
+          child: Card(
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: adminIdController,
+                      decoration: InputDecoration(
+                        labelText: 'Admin ID',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      obscureText: true,
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _isLoading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFFF06292),
+                          )
+                        : ElevatedButton(
+                            onPressed: _register,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF06292),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Register',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AdminLoginPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Already have an account? Login',
+                        style: TextStyle(color: Color(0xFFF06292)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
